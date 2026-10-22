@@ -1,0 +1,9 @@
+{
+  "listen": "127.0.0.1:18080",
+  "admin_password": "",
+  "approval_key": "wb-local-8f3a2c",
+  "models": "deepseek-v4-flash,deepseek-v4-pro,glm-5.3,kimi-k3-1",
+  "upstream_base": "https://copilot.tencent.com",
+  "upstream_key": "",
+  "timeout": 300
+}

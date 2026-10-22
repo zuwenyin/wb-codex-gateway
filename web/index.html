@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WorkBuddy Gateway 控制台</title>
+<link rel="stylesheet" href="/assets/app.css?v=2.5">
+</head>
+<body>
+<div id="login" class="login-wrap hidden">
+  <form class="login-card" id="loginForm">
+    <h1>WorkBuddy Gateway</h1>
+    <p class="muted">输入管理密码以继续</p>
+    <input type="password" id="password" placeholder="管理密码" autocomplete="current-password" autofocus>
+    <button class="btn primary" type="submit">进入控制台</button>
+    <p class="err" id="loginErr"></p>
+  </form>
+</div>
+
+<div id="app" class="hidden">
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot" id="statusDot"></span>
+      <strong>WorkBuddy Gateway</strong>
+      <span class="muted" id="endpointInfo"></span>
+    </div>
+    <div class="top-actions">
+      <label class="switch" title="开启 / 关闭代理">
+        <input type="checkbox" id="proxyToggle">
+        <span class="slider"></span>
+      </label>
+      <span class="proxy-label" id="proxyLabel">代理状态</span>
+      <button class="btn ghost" id="shutdownBtn" title="结束网关进程；之后本机其它客户端与网关完全解耦">停止网关</button>
+      <button class="btn ghost" id="logoutBtn">退出</button>
+    </div>
+  </header>
+
+  <div class="banner hidden" id="pauseBanner">
+    代理已暂停：Codex 发来的请求会被拒绝。打开右上角开关即可恢复。
+  </div>
+
+  <div class="banner danger hidden" id="ownerBanner">
+    <div id="ownerBannerText"></div>
+    <div class="banner-actions">
+      <button class="btn warn mini" id="purgeAccountsBtn">清空这些账号</button>
+      <span class="muted">或关闭网关后手动删除 <code>data.json</code> 再重启</span>
+    </div>
+  </div>
+
+  <main>
+    <section class="cards" id="statCards"></section>
+
+    <section class="panel hidden" id="codexPanel">
+      <div class="panel-head">
+        <h2>Codex 接入模式</h2>
+        <span class="muted" id="codexPath"></span>
+      </div>
+      <div class="codex-body">
+        <div class="codex-line">
+          <span class="mode-badge" id="codexMode">—</span>
+          <span id="codexDesc" class="muted"></span>
+        </div>
+        <div class="codex-row">
+          <label>网关模型
+            <select id="codexModelSelect"></select>
+          </label>
+          <button class="btn primary" id="codexSwitchBtn">切换</button>
+        </div>
+        <p class="muted" id="codexHint"></p>
+      </div>
+    </section>
+
+    <section class="panel" id="creditPanel">
+      <div class="panel-head">
+        <h2>签到与积分</h2>
+        <div class="panel-tools">
+          <button class="btn ghost mini" id="creditRefresh" title="重新查询">⟳</button>
+          <button class="btn primary" id="checkinAllBtn">✓ 一键签到</button>
+        </div>
+      </div>
+      <div class="credit-body" id="creditBody">
+        <p class="muted credit-loading">正在查询积分…</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>账号池</h2>
+        <div class="panel-tools">
+          <button class="btn primary" id="scanBtn">⟳ 扫描本机 WorkBuddy 账号</button>
+          <button class="btn warn hidden" id="resetAllBtn">↻ 恢复全部</button>
+          <select id="policySelect" title="账号选择策略">
+            <option value="round_robin">轮询（轮流使用）</option>
+            <option value="failover">故障转移（固定首选）</option>
+            <option value="random">随机</option>
+            <option value="expire_first">积分优先过期（省积分）</option>
+          </select>
+          <button class="btn ghost" id="addBtn">+ 手动添加</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="accountTable">
+          <thead>
+            <tr>
+              <th>状态</th><th>名称</th><th>接口地址</th><th>Key</th>
+              <th>模型</th><th>请求 / 成功率</th><th>最近错误</th><th class="right">操作</th>
+            </tr>
+          </thead>
+          <tbody id="accountBody"></tbody>
+        </table>
+        <p class="empty hidden" id="emptyHint">还没有账号。点右上角「添加账号」接入 WorkBuddy 或任意 OpenAI 兼容服务。</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>高级设置</h2></div>
+      <div class="settings-grid">
+        <label>冷却时长（秒）
+          <input type="number" id="cooldownSec" min="1" max="3600">
+        </label>
+        <label>连续失败多少次自动禁用
+          <input type="number" id="maxFailures" min="1" max="100">
+        </label>
+        <label class="check">
+          <input type="checkbox" id="sendUsage">
+          <span>向请求上游携带 stream_options.include_usage（上游不支持时请关闭）</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="includeNamespaces">
+          <span>展开 namespace 工具（实验性）</span>
+        </label>
+        <label>管理密码
+          <input type="password" id="newPassword" placeholder="留空表示不修改">
+        </label>
+      </div>
+      <div class="panel-foot">
+        <button class="btn primary" id="saveSettings">保存设置</button>
+        <span class="muted" id="saveHint"></span>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal hidden" id="modal">
+  <div class="modal-card">
+    <h2 id="modalTitle">添加账号</h2>
+    <input type="hidden" id="editId">
+    <label>名称 <input id="fName" placeholder="例如：WorkBuddy 主号"></label>
+    <label>接口地址 <input id="fBase" placeholder="https://copilot.tencent.com"></label>
+    <label>API Key <input id="fKey" placeholder="sk-...  （编辑时留空表示不修改）"></label>
+    <label>模型（逗号分隔，留空用默认） <input id="fModels" placeholder="glm-5.1,kimi-k2.5"></label>
+    <label>备注 <input id="fNote" placeholder="可选"></label>
+    <p class="err" id="modalErr"></p>
+    <div class="modal-foot">
+      <button class="btn ghost" id="cancelBtn">取消</button>
+      <button class="btn primary" id="saveAccBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="modelModal">
+  <div class="modal-card wide">
+    <h2>选择模型</h2>
+    <p class="muted" id="modelHint">正在从 WorkBuddy 拉取可用模型…</p>
+    <div class="model-list" id="modelList"></div>    <p class="err" id="modelErr"></p>
+    <div class="modal-foot">
+      <button class="btn ghost" id="modelCancel">取消</button>
+      <button class="btn primary" id="modelSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="creditModal">
+  <div class="modal-card wide">
+    <h2>积分详情</h2>
+    <p class="muted" id="creditModalHint"></p>
+    <div class="credit-detail" id="creditDetail"></div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="creditModalClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+<script src="/assets/app.js?v=2.5"></script>
+</body>
+</html>

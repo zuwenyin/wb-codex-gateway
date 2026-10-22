@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 虚拟环境
+.venv/
+env/
+venv/
+
+# ---- 敏感 / 私有数据（务必不要提交）----
+# 包含真实的 access_token / refresh_token
+data.json
+data-*.json
+# 运行时配置（含 approval_key）
+config.json
+# 运行状态与日志
+status.json
+*.log
+requests.log
+upstream-debug.jsonl
+upstream-seen.log
+
+# ---- 生成的产物（由脚本重新生成）----
+models.json
+models-meta.json
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
